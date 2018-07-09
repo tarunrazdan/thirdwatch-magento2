@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+
+    <event name="admin_system_config_changed_section_mitra">
+        <observer name="custom_admin_system_config_changed_section_mitra" instance="Thirdwatch\Mitra\Observer\ConfigObserver"/>
+    </event>
+
+    <event name="customer_login">
+        <observer name="thirdwatch.customerAuthenticated" instance="Thirdwatch\Mitra\Observer\CustomerAuthenticated" />
+    </event>
+
+    <event name="customer_logout">
+        <observer name="thirdwatch.customerLogout" instance="Thirdwatch\Mitra\Observer\CustomerLogout" />
+    </event>
+
+    <event name="customer_register_success">
+        <observer name="thirdwatch.customerRegisterSuccess" instance="Thirdwatch\Mitra\Observer\CustomerRegisterSuccess" />
+    </event>
+
+    <event name="customer_account_edited">
+        <observer name="thirdwatch.customerAccountUpdate" instance="Thirdwatch\Mitra\Observer\CustomerUpdate" />
+    </event>
+
+    <event name="customer_address_save_after">
+        <observer name="thirdwatch.customerAddressUpdate" instance="Thirdwatch\Mitra\Observer\CustomerUpdate" />
+    </event>
+
+    <event name="checkout_cart_add_product_complete">
+        <observer name="thirdwatch.cartAdd" instance="Thirdwatch\Mitra\Observer\CartAdd" />
+    </event>
+
+    <event name="checkout_cart_product_update_after">
+        <observer name="thirdwatch.cartUpdate" instance="Thirdwatch\Mitra\Observer\CartUpdate" />
+    </event>
+
+    <event name="sales_quote_remove_item">
+        <observer name="thirdwatch.cartRemove" instance="Thirdwatch\Mitra\Observer\CartRemove" />
+    </event>
+
+    <event name="sales_order_save_after">
+        <observer name="thirdwatch.salesOrderSaveAfter" instance="Thirdwatch\Mitra\Observer\salesOrderSaveAfter"/>
+    </event>
+
+    <!--<event name="sales_order_payment_void">-->
+<!--<observer name="sales_order_payment_void" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentVoid"/>-->
+<!--</event>-->
+<!--<event name="sales_order_payment_refund">-->
+<!--<observer name="sales_order_payment_refund" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentRefund"/>-->
+<!--</event>-->
+<!--<event name="sales_order_payment_cancel">-->
+<!--<observer name="sales_order_payment_cancel" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentCancel"/>-->
+<!--</event>-->
+
+<!--<event name="checkout_onepage_controller_success_action">-->
+<!--<observer name="checkout_onepage_controller_success_action" instance="Thirdwatch\Mitra\Observer\salesOrderSaveAfter"  />-->
+<!--</event>-->
+</config>
