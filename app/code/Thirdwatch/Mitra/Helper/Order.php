@@ -52,6 +52,7 @@ class Order extends AbstractHelper {
     public function postOrder($order, $action) {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();        
         $logHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Log');
+        $helper = $objectManager->create('Thirdwatch\Mitra\Helper\Data');
 
         switch ($action) {
             case self::ACTION_CREATE:
@@ -63,8 +64,11 @@ class Order extends AbstractHelper {
                 $this->createOrder($order);
                 $this->createTransaction($order, '_sale');
                 $order->setState(\Magento\Sales\Model\Order::STATE_HOLDED)
-                    ->setStatus('thirdwatch_holded');
+                    ->setStatus(\Magento\Sales\Model\Order::STATE_HOLDED);
+
+                $order->setThirdwatchFlagStatus($helper->getPending());
                 $order->save();
+
                 break;
             case self:: ACTION_CANCEL:
                 $logHelper->log("ACTION_CANCEL");

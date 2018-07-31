@@ -6,8 +6,21 @@
  */
 namespace Thirdwatch\Mitra\Controller\Postback;
 
+use Thirdwatch\Mitra\Model\ThirdwatchFlaggedFactory;
+use Magento\Framework\App\Action\Context;
+
 class Action extends \Magento\Framework\App\Action\Action
 {
+    protected $_modelFriendFactory;
+
+    public function __construct(
+        Context $context,
+        ThirdwatchFlaggedFactory $modelFriendFactory
+    ) {
+        parent::__construct($context);
+        $this->_modelFriendFactory = $modelFriendFactory;
+    }
+
     public function execute()
     {
         $request = $this->getRequest();
@@ -49,8 +62,20 @@ class Action extends \Magento\Framework\App\Action\Action
             } else {
                 try {
                     if ($flag === "green"){
-                        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                            ->setStatus('thirdwatch_approved');
+                        $logHelper->log(print_r("action_order_entity" . $order->getEntityId(), True), "debug");
+                        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
+
+
+//                        $friendModel = $this->_modelFriendFactory->create();
+//                        $friend = $friendModel->load(14);
+
+//                        $item = $objectManager->create("Thirdwatch\Mitra\Model\ThirdwatchFlagged");
+//                        $tw_flag = $item->getByEntityId(14);
+//                        $logHelper->log(print_r("action_order_entity sdfdsf", True), "debug");
+//                        $logHelper->log(print_r("action_order_entity" . $friend, True), "debug");
+
+//                        $friend->setFlag("FLAGGED");
+//                        $friend->save();
                     } else{
                         $order->setState(\Magento\Sales\Model\Order::STATE_HOLDED)
                             ->setStatus('thirdwatch_declined');
@@ -70,6 +95,7 @@ class Action extends \Magento\Framework\App\Action\Action
                 }
             }
         } catch (\Exception $e) {
+            $logHelper->log(print_r($e->getMessage(), True), "debug");
             $logHelper->log("tw-debug: ERROR: while processing notification for order $orderId", "debug");
             $statusCode = 500;
             $msg = "Internal Error";

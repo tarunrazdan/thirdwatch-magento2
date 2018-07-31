@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <virtualType name="Magento\Sales\Model\ResourceModel\Order\Grid">
+        <arguments>
+            <!--<argument name="idListProvider" xsi:type="object">SignifydIdListProvider</argument>-->
+            <argument name="joins" xsi:type="array">
+                <item name="thirdwatch_orders" xsi:type="array">
+                    <item name="table" xsi:type="string">thirdwatch_orders</item>
+                    <item name="origin_column" xsi:type="string">entity_id</item>
+                    <item name="target_column" xsi:type="string">order_id</item>
+                </item>
+            </argument>
+            <argument name="columns" xsi:type="array">
+                <item name="thirdwatch_flag_status" xsi:type="string">thirdwatch_orders.flag</item>
+            </argument>
+        </arguments>
+    </virtualType>
+</config>

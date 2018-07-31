@@ -68,4 +68,21 @@ class Data extends AbstractHelper {
     {
         return 'Flagged (Thirdwatch)';
     }
+
+    public function getPending(){
+       return 'PENDING';
+    }
+
+    public function getDeclined(){
+        return 'DECLINED';
+    }
+
+    public function getApproved(){
+        return 'APPROVED';
+    }
+
+    public function getFlagged(){
+        return 'FLAGGED';
+    }
+
 }

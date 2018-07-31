@@ -6,12 +6,14 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Registry;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
+//use Thirdwatch\Mitra\Model\Resource\ThirdwatchFlaggedFactory;
 
 class salesOrderSaveAfter implements ObserverInterface {
 
     private $storeManager;
     protected $_registry;
     private $timezone;
+    protected $_modelNewsFactory;
 
     public function __construct(StoreManagerInterface $storeManager, Registry $registry, TimezoneInterface $timezone) {
          $this->storeManager = $storeManager;
@@ -28,6 +30,7 @@ class salesOrderSaveAfter implements ObserverInterface {
         $is_plugin_active = $dataHelper->isPluginActive();
         if ($is_plugin_active) {
             $order = $observer->getEvent()->getOrder();
+
             if (!$order) {return;}
             $oldState = $order->getOrigData('state');
             $newState = $order->getState();
@@ -59,6 +62,12 @@ class salesOrderSaveAfter implements ObserverInterface {
                 $logHelper->log($dataHelper->getThirdwatchDeclinedStatusCode());
 
                 if ($newState == "new"){
+
+                    $item = $objectManager->create("Thirdwatch\Mitra\Model\ThirdwatchFlagged");
+                    $logHelper->log("tw-debug: Order Entity ID ".$order->getEntityId(), "debug");
+                    $item->setOrderId($order->getEntityId());
+                    $item->save();
+
 
 
 //                if($oldState == Order::STATE_HOLDED and ($oldStatusLabel == $statusHelper->getThirdwatchFlaggedStatusCode() or $oldStatusLabel == $statusHelper->getOnHoldStatusCode()) or $oldStatusLabel == $statusHelper->getThirdwatchDeclinedStatusCode()){
