@@ -62,7 +62,7 @@ class Action extends \Magento\Framework\App\Action\Action
                             $twOrder = $twTable->getCollection()->addFieldToFilter('order_increment_id', $orderId);
                             foreach($twOrder as $twOrderItems)
                             {
-                                $twOrderItems->action("approved");
+                                $twOrderItems->setAction("approved");
                                 $twOrderItems->setStatus($helper->getApproved());
                             }
                             $twOrder->save();
@@ -82,7 +82,7 @@ class Action extends \Magento\Framework\App\Action\Action
                             $twOrder = $twTable->getCollection()->addFieldToFilter('order_increment_id', $orderId);
                             foreach($twOrder as $twOrderItems)
                             {
-                                $twOrderItems->action("declined");
+                                $twOrderItems->setAction("declined");
                                 $twOrderItems->setStatus($helper->getDeclined());
                             }
                             $twOrder->save();

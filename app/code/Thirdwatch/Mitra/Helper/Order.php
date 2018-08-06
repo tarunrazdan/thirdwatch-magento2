@@ -551,7 +551,7 @@ class Order extends AbstractHelper {
             $orderData['_user_id'] = (string) $customerData->getId();
             $orderData['_session_id'] = (string) $SID;
             $orderData['_device_ip'] = (string) $remoteAddress;
-            $orderData['_origin_timestamp'] = (string) (new \DateTime($model->getCreatedAt()))->getTimestamp();
+            $orderData['_origin_timestamp'] = (string) (new \DateTime($model->getCreatedAt()))->getTimestamp().'000';
             $orderData['_order_id'] = (string) $this->getIncrementOrderId($model);
             $orderData['_user_email'] = (string) $model->getCustomerEmail();
             $orderData['_amount'] = (string) $model->getGrandTotal();
@@ -662,7 +662,7 @@ class Order extends AbstractHelper {
             $orderData['_user_id'] = (string) $customerData->getId();
             $orderData['_session_id'] = (string) $SID;
             $orderData['_device_ip'] = (string) $remoteAddress;
-            $orderData['_origin_timestamp'] = (string) (new \DateTime($model->getCreatedAt()))->getTimestamp();
+            $orderData['_origin_timestamp'] = (string) (new \DateTime($model->getCreatedAt()))->getTimestamp().'000';
             $orderData['_order_id'] = (string) $this->getIncrementOrderId($model);
             $orderData['_user_email'] = (string) $model->getCustomerEmail();
             $orderData['_amount'] = (string) $model->getGrandTotal();
