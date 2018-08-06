@@ -1,8 +1,4 @@
 <?php
-/**
- * Copyright © Magento, Inc. All rights reserved.
- * See COPYING.txt for license details.
- */
 namespace Thirdwatch\Mitra\Ui\Component\Listing\Column\Flag;
 
 use Magento\Framework\Escaper;

@@ -12,90 +12,114 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Sales\Model\OrderFactory;
-//use Magento\Sales\Model\Order as MageOrder;
+use Magento\Framework\App\Helper\Context;
+
 
 class Order extends AbstractHelper {
 
-    const ACTION_CREATE = 'create';
-    const ACTION_TRANSACTION = 'transaction';
+    const ACTION_ORDER_ONLY = 'order';
+    const ACTION_TRANSACTION_COD = 'cod';
+    const ACTION_TRANSACTION_FREE = 'free';
+    const ACTION_TRANSACTION_PAID = 'paid';
     const ACTION_UPDATE = 'update';
     const ACTION_CANCEL = 'cancel';
     const ACTION_REFUND = 'refund';
-    const ACTION_ONLY_TRANSACTION = 'onlyTransaction';
+    const ACTION_TRANSACTION_ONLY = 'transaction';
 
-    private $_customer = array();
-    protected $requestData = array();
     protected $_customerSession;
     protected $_remoteAddress;
-    protected $storeManager;
-    private $timezone;
-     protected $_orderFactory;
+    protected $_scopeConfig;
+    protected $_storeManager;
+    protected $_timezone;
+    protected $_orderFactory;
+
 
     public function __construct(
     Session $customerSession, RemoteAddress $remoteAddress, ScopeConfigInterface $scopeConfig,
-            StoreManagerInterface $storeManager, TimezoneInterface $timezone, OrderFactory $orderFactory
+            StoreManagerInterface $storeManager, TimezoneInterface $timezone, OrderFactory $orderFactory, Context $context
     ) {
         $this->_customerSession = $customerSession;
         $this->_remoteAddress = $remoteAddress;
-        $this->scopeConfig = $scopeConfig;
+        $this->_scopeConfig = $scopeConfig;
         $this->_storeManager = $storeManager;
-        $this->timezone = $timezone;
+        $this->_timezone = $timezone;
         $this->_orderFactory = $orderFactory;
+        parent::__construct($context);
     }
 
-    /*
-     * Submit an order to Thirdwatch.
-     * @param Mage_Sales_Model_Order $order
-     * @param string $action - one of self::ACTION_*
-     */
+    public function getOrderFromIncrementId($order){
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $order_object = $objectManager->create('\Magento\Sales\Model\Order')->loadByIncrementId($order->getIncrementId());
+        $order_object->setState(\Magento\Sales\Model\Order::STATE_HOLDED)->setStatus(\Magento\Sales\Model\Order::STATE_HOLDED);
+        $order_object->save();
+        return $order_object;
+    }
+
+    public function updateThirdwatchTable($order_object){
+        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+        $helper = $objectManager->create('Thirdwatch\Mitra\Helper\Data');
+        $twTable = $objectManager->create("Thirdwatch\Mitra\Model\ThirdwatchFlagged");
+        $twTable->setOrderId($order_object->getEntityId());
+        $twTable->setOrderIncrementId($order_object->getIncrementId());
+        $twTable->setStatus($helper->getSent());
+        $twTable->save();
+    }
 
     public function postOrder($order, $action) {
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();        
-        $logHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Log');
-        $helper = $objectManager->create('Thirdwatch\Mitra\Helper\Data');
+        $order->save();
 
         switch ($action) {
-            case self::ACTION_CREATE:
-                $logHelper->log("ACTION_CREATE");
-                $this->createOrder($order);
+            case self::ACTION_ORDER_ONLY:
+                $this->_logger->debug("tw-Debug: Create Order");
+                $this->createOrder($order, self::ACTION_ORDER_ONLY);
                 break;
-            case self:: ACTION_TRANSACTION:
-                $logHelper->log("ACTION_TRANSACTION");
-                $this->createOrder($order);
+
+            case self:: ACTION_TRANSACTION_COD:
+                $this->_logger->debug("tw-Debug: Create COD Transaction");
+                $this->createOrder($order, self::ACTION_TRANSACTION_COD);
                 $this->createTransaction($order, '_sale');
-                $order->setState(\Magento\Sales\Model\Order::STATE_HOLDED)
-                    ->setStatus(\Magento\Sales\Model\Order::STATE_HOLDED);
-
-                $order->setThirdwatchFlagStatus($helper->getPending());
-                $order->save();
-
+                $order_object = $this->getOrderFromIncrementId($order);
+                $this->updateThirdwatchTable($order_object);
                 break;
+
+            case self:: ACTION_TRANSACTION_FREE:
+                $this->_logger->debug("tw-Debug: Create FREE Transaction");
+                $this->createOrder($order, self::ACTION_TRANSACTION_FREE);
+                $this->createTransaction($order, '_sale');
+                $order_object = $this->getOrderFromIncrementId($order);
+                $this->updateThirdwatchTable($order_object);
+                break;
+
+            case self:: ACTION_TRANSACTION_PAID:
+                $this->_logger->debug("tw-Debug: Create PAID Transaction");
+                $this->createOrder($order, self::ACTION_TRANSACTION_PAID);
+                $this->createTransaction($order, '_sale');
+                $order_object = $this->getOrderFromIncrementId($order);
+                $this->updateThirdwatchTable($order_object);
+                break;
+
             case self:: ACTION_CANCEL:
-                $logHelper->log("ACTION_CANCEL");
+                $this->_logger->debug("tw-Debug: Cancel Order");
                 $this->createTransaction($order, '_void');
                 break;
+
             case self:: ACTION_REFUND:
-                $logHelper->log("ACTION_REFUND");
+                $this->_logger->debug("tw-Debug: Refund Initiated");
                 $this->createTransaction($order, '_refund');
                 break;
-            case self:: ACTION_ONLY_TRANSACTION:
-                $logHelper->log("ACTION_ONLY_TRANSACTION");
+
+            case self:: ACTION_TRANSACTION_ONLY:
+                $this->_logger->debug("tw-Debug: Refund Initiated");
                 $this->createTransaction($order, '_sale');
                 $order->setState(Mage_Sales_Model_Order::STATE_HOLDED, 'thirdwatch_holded');
                 $order->save();
                 break;
+
             case self::ACTION_UPDATE:
-                $logHelper->log("ACTION_UPDATE");
+                $this->_logger->debug("Tw-Debug: Refund Initiated");
                 $this->updateOrderStatus($order);
                 break;
         }
-    }
-
-    public function getOrderOrigId($order) {
-        if (!$order) {
-            return null;
-        }
-        return $order->getId() . '_' . $order->getIncrementId();
     }
 
     public function getIncrementOrderId($order) {
@@ -495,98 +519,63 @@ class Order extends AbstractHelper {
             $logHelper->log("Inside Payment 4");
             $paymentData['_payment_gateway'] = (string) $payment->getMethodInstance()->getTitle();
             $logHelper->log("Inside Payment 5");
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $logHelper->log($e->getMessage());
         }
         $paymentJson = new \ai\thirdwatch\Model\PaymentMethod($paymentData);
         return $paymentJson;
     }
 
-//    private function loadOrderByOrigId($full_orig_id)
-//    {
-//        if (!$full_orig_id) {
-//            return null;
-//        }
-//
-//        $magento_ids = explode("_", $full_orig_id);
-//        $order_id = $magento_ids[0];
-//        $increment_id = $magento_ids[1];
-//
-//        if ($order_id && $increment_id) {
-//            return Mage::getModel('sales/order')->getCollection()
-//                ->addFieldToFilter('entity_id', $order_id)
-//                ->addFieldToFilter('increment_id', $increment_id)
-//                ->getFirstItem();
-//        }
-//        return Mage::getModel('sales/order')->load($order_id);
-//    }
-
-    private function checkIsPrepaid($order) {
-        if ($order->getBaseTotalDue() > 0) {
-            return False;
-        } else {
-            return True;
+    private function checkIsPrepaid($orderType) {
+        switch ($orderType) {
+            case self::ACTION_TRANSACTION_COD:
+                return False;
+            case self::ACTION_TRANSACTION_FREE:
+                return True;
+            case self::ACTION_TRANSACTION_PAID:
+                return True;
         }
     }
 
-    private function getOrder($model) {
+    private function getOrder($model, $orderType) {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $logHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Log');
         $commonHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Common');
-        $logHelper->log("Get Order");
         $orderData = array();
 
         $customer = $this->_customerSession->getCustomer();
         $customerData = $objectManager->create('Magento\Customer\Model\Customer')->load($customer->getId());
         $SID = $this->_customerSession->getSessionId();
-        $logHelper->log("Get Order 2");
 
         try {
-//            $magentoDateObject = $objectManager->create('Magento\Framework\Stdlib\DateTime\DateTime');
-//            $currentDate = $magentoDateObject->timestamp();
             $remoteAddress = $this->_remoteAddress->getRemoteAddress();
-            $logHelper->log("Get Order 3");
-
             $orderData['_user_id'] = (string) $customerData->getId();
             $orderData['_session_id'] = (string) $SID;
             $orderData['_device_ip'] = (string) $remoteAddress;
-            $logHelper->log("Get Order before timezone");
             $orderData['_origin_timestamp'] = (string) (new \DateTime($model->getCreatedAt()))->getTimestamp();
-            $logHelper->log("Get Order 4");
             $orderData['_order_id'] = (string) $this->getIncrementOrderId($model);
             $orderData['_user_email'] = (string) $model->getCustomerEmail();
             $orderData['_amount'] = (string) $model->getGrandTotal();
-            $logHelper->log("Get Order 5");
             $orderData['_currency_code'] = (string) $model->getOrderCurrencyCode();
-            $orderData['_is_pre_paid'] = $this->checkIsPrepaid($model);
+            $orderData['_is_pre_paid'] = $this->checkIsPrepaid($orderType);
 
             $orderData['_billing_address'] = $commonHelper->getBillingAddress($model->getBillingAddress());
-            $logHelper->log("Get Order 6");
-
 
             if ($model->getShippingAddress()) {
-                $logHelper->log("Get Order 7");
                 $orderData['_shipping_address'] = $commonHelper->getShippingAddress($model->getShippingAddress());
-                $logHelper->log("Get Order 8");
             } else {
-                $logHelper->log("Get Order 9");
                 $orderData['_shipping_address'] = $commonHelper->getShippingAddress($model->getBillingAddress());
-                $logHelper->log("Get Order 10");
             }
-            $logHelper->log("Get Order 11");
+
             $orderData['_items'] = $this->getLineItems($model);
-            $logHelper->log("Get Order 12");
             $orderData['_payment_methods'] = array($this->getPaymentDetails($model));
-            $logHelper->log("Get Order 13");
-        } catch (Exception $e) {
-            $logHelper->log($e->getMessage());
+        } catch (\Exception $e) {
+            $this->_logger->debug("tw:debug ".$e->getMessage());
         }
         return $orderData;
     }
 
-    public function createOrder($model) {
+    public function createOrder($order, $orderType) {
         $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $logHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Log');
         $dataHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Data');
 
         $secretKey = $dataHelper->getKey();
@@ -594,12 +583,12 @@ class Order extends AbstractHelper {
             'X-THIRDWATCH-API-KEY', $secretKey);
 
         try {
-            $orderData = $this->getOrder($model);
+            $orderData = $this->getOrder($order, $orderType);
             $apiInstance = new \ai\thirdwatch\Api\CreateOrderApi(new \GuzzleHttp\Client(), $config);
             $body = new \ai\thirdwatch\Model\CreateOrder($orderData);
             $apiInstance->createOrder($body);
         } catch (ApiException $e) {
-            $logHelper->log($e);
+            $this->_logger->debug("tw-debug". $e->getMessage());
         }
     }
 
@@ -707,13 +696,13 @@ class Order extends AbstractHelper {
             $orderData = $this->getTransaction($model, $txnType);
             $api_instance = new \ai\thirdwatch\Api\TransactionApi(new \GuzzleHttp\Client(), $config);
             $body = new \ai\thirdwatch\Model\Transaction($orderData);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $logHelper->log($e->getMessage());
         }
 
         try {
             $api_instance->transaction($body);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $logHelper->log($e->getMessage());
         }
     }

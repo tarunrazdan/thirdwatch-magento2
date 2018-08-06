@@ -85,4 +85,7 @@ class Data extends AbstractHelper {
         return 'FLAGGED';
     }
 
+    public function getSent(){
+        return 'SENT';
+    }
 }

@@ -15,6 +15,9 @@ class Action extends \Magento\Framework\App\Action\Action
         $logHelper = $objectManager->create('Thirdwatch\Mitra\Helper\Log');
         $logHelper->log("tw-debug: Dashboard Action Execute", "debug");
         $jsonManager = $objectManager->get('\Magento\Framework\Json\Decoder');
+        $orderConnection = $objectManager->create('Magento\Sales\Model\ResourceModel\Order\Grid\Collection')->getConnection();
+        $twTable = $objectManager->create('Thirdwatch\Mitra\Model\ThirdwatchFlagged');
+        $helper = $objectManager->create('Thirdwatch\Mitra\Helper\Data');
 
         $statusCode = 200;
         $orderId = null;
@@ -48,33 +51,49 @@ class Action extends \Magento\Framework\App\Action\Action
             } else {
                 try {
                     if ($actionType === "approved"){
-                        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)
-                            ->setStatus('thirdwatch_approved');
+                        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING)->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
                         if (!empty($comment) and strtolower($comment) != "none"){
                             $order->addStatusHistoryComment($comment);
                         }
                         $order->save();
+                        $twOrder = $twTable->getCollection()->addFieldToFilter('order_increment_id', $orderId)->getData();
+
+                        if ($twOrder){
+                            $twOrder = $twTable->getCollection()->addFieldToFilter('order_increment_id', $orderId);
+                            foreach($twOrder as $twOrderItems)
+                            {
+                                $twOrderItems->action("approved");
+                                $twOrderItems->setStatus($helper->getApproved());
+                            }
+                            $twOrder->save();
+                        }
+                        $order->save();
+                        $orderConnection->update('sales_order_grid', ['thirdwatch_flag_status' => $helper->getApproved()], ["entity_id = ?" => $order->getId()]);
                     }
                     else{
-                        $order->setState(\Magento\Sales\Model\Order::STATE_HOLDED)
-                            ->setStatus('thirdwatch_declined');
+                        $order->setState(\Magento\Sales\Model\Order::STATE_HOLDED)->setStatus(\Magento\Sales\Model\Order::STATE_HOLDED);
                         if (!empty($comment) and strtolower($comment) != "none"){
                             $order->addStatusHistoryComment($comment);
                         }
                         $order->save();
+                        $twOrder = $twTable->getCollection()->addFieldToFilter('order_increment_id', $orderId)->getData();
+
+                        if ($twOrder){
+                            $twOrder = $twTable->getCollection()->addFieldToFilter('order_increment_id', $orderId);
+                            foreach($twOrder as $twOrderItems)
+                            {
+                                $twOrderItems->action("declined");
+                                $twOrderItems->setStatus($helper->getDeclined());
+                            }
+                            $twOrder->save();
+                        }
+                        $order->save();
+                        $orderConnection->update('sales_order_grid', ['thirdwatch_flag_status' => $helper->getDeclined()], ["entity_id = ?" => $order->getId()]);
                     }
                     $statusCode = 200;
                     $msg = 'Action Update event triggered.';
                 } catch (\Exception $e) {
-                    $exceptionMessage = 'SQLSTATE[40001]: Serialization '
-                        . 'failure: 1213 Deadlock found when trying to get '
-                        . 'lock; try restarting transaction';
-
-                    if ($e->getMessage() === $exceptionMessage) {
-                        throw new \Exception('Deadlock exception handled.');
-                    } else {
-                        throw $e;
-                    }
+                    $logHelper->log("tw-debug: ".$e->getMessage(), "debug");
                 }
             }
         } catch (\Exception $e) {

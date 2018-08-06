@@ -43,16 +43,16 @@
     </event>
 
     <!--<event name="sales_order_payment_void">-->
-<!--<observer name="sales_order_payment_void" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentVoid"/>-->
-<!--</event>-->
-<!--<event name="sales_order_payment_refund">-->
-<!--<observer name="sales_order_payment_refund" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentRefund"/>-->
-<!--</event>-->
-<!--<event name="sales_order_payment_cancel">-->
-<!--<observer name="sales_order_payment_cancel" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentCancel"/>-->
-<!--</event>-->
+    <!--<observer name="sales_order_payment_void" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentVoid"/>-->
+    <!--</event>-->
+    <!--<event name="sales_order_payment_refund">-->
+    <!--<observer name="sales_order_payment_refund" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentRefund"/>-->
+    <!--</event>-->
+    <!--<event name="sales_order_payment_cancel">-->
+    <!--<observer name="sales_order_payment_cancel" instance="Thirdwatch\Mitra\Observer\salesOrderPaymentCancel"/>-->
+    <!--</event>-->
 
-<!--<event name="checkout_onepage_controller_success_action">-->
-<!--<observer name="checkout_onepage_controller_success_action" instance="Thirdwatch\Mitra\Observer\salesOrderSaveAfter"  />-->
-<!--</event>-->
+    <!--<event name="checkout_onepage_controller_success_action">-->
+    <!--<observer name="checkout_onepage_controller_success_action" instance="Thirdwatch\Mitra\Observer\salesOrderSaveAfter"  />-->
+    <!--</event>-->
 </config>

@@ -46,9 +46,11 @@ class InstallSchema implements InstallSchemaInterface
             ['identity' => true, 'unsigned' => true, 'nullable' => false, 'primary' => true]
         );
         $table->addColumn('order_id', Table::TYPE_INTEGER, null, ['unsigned' => true]);
+        $table->addColumn('order_increment_id', Table::TYPE_TEXT, 32);
         $table->addColumn('status', Table::TYPE_TEXT, 32, ['default' => $helper->getPending()]);
         $table->addColumn('flag', Table::TYPE_TEXT, 32);
         $table->addColumn('action', Table::TYPE_TEXT, 32);
+        $table->addColumn('reasons', Table::TYPE_TEXT, 3072);
         $table->addColumn('score', Table::TYPE_INTEGER, null, ['unsigned' => true]);
         $table->addColumn('created_at', Table::TYPE_TIMESTAMP);
         $table->addColumn('updated_at', Table::TYPE_TIMESTAMP);
